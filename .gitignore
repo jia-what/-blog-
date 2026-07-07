@@ -1,2 +1,18 @@
 # 数据库配置（含密码，勿提交）
+**/db.properties
+webapp/WEB-INF/classes/db.properties
 resume/resume/WEB-INF/classes/db.properties
+
+# 本地学习资料与大文件
+*.zip
+笔记/
+resume.zip
+resume/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/

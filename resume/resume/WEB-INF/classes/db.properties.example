@@ -1,4 +1,0 @@
-driver=com.mysql.jdbc.Driver
-url=jdbc:mysql://127.0.0.1:3306/resume?userUnicode=true&characterEncoding=utf8&useSSL=true&autoReconnect=true&failOverReadOnly=false
-username=root
-password=your_password_here
