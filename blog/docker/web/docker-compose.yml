@@ -1,0 +1,10 @@
+version: '2.1'
+services:
+  blog:
+    image: blog:1.0.1
+    container_name: blog
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "8081:8081"
