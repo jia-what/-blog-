@@ -90,7 +90,9 @@ chmod +x /opt/web/start-all.sh
     ├── README.md
     ├── config/                   # 各服务配置模板
     ├── frontend/                 # Vue 前端源码
-    ├── scripts/start-all.sh
+    ├── scripts/
+    │   ├── start-all.sh          # 一键启动
+    │   └── stop-all.sh           # 一键停止
     └── docs/部署教程.md
 ```
 
@@ -115,6 +117,7 @@ chmod +x /opt/web/start-all.sh
 - 部署实战练习项目，Resume 应用原作者 **he_ber**
 - `db.properties`、`application.yml` 含敏感信息，已加入 `.gitignore`，仅提交 `.example` 模板
 - jar 包体积较大，请自行放置到部署目录，不纳入 Git 仓库
+- Blog Cloud 启停：部署后将 `scripts/start-all.sh` 和 `scripts/stop-all.sh` 复制到 `/opt/web/`，分别用于启动和停止全部服务
 
 ## License
 
