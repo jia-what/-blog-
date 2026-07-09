@@ -74,27 +74,28 @@ chmod +x /opt/web/start-all.sh
 
 ## Nginx 反向代理
 
-在同一台虚拟机上，用 Nginx（80 端口）反向代理 Blog（8081），Resume 仍通过 8080 直连 Tomcat。
+用 Nginx（80 端口）反向代理 Blog（8081）。支持 **一台虚拟机** 和 **两台虚拟机** 两种方式，详见 [nginx/README.md](nginx/README.md)。
 
-参考教程：[nginx基础 - 反向代理](http://47.121.207.32/blog/6#%E5%9B%9Bnginx%E6%97%A5%E5%BF%97%E7%AE%A1%E7%90%86)（完成至第五大点 5.1，最终按本仓库方案调整）
+| 场景 | 配置模板 | `proxy_pass` 写法 |
+|------|----------|-------------------|
+| 一台虚拟机（本仓库实战） | `nginx/conf/default.conf.example` | `http://127.0.0.1:8081` |
+| 两台虚拟机（教程原版） | `nginx/conf/default.conf.two-vm.example` | `http://Blog虚拟机IP:8081` |
 
-详细说明、踩坑记录见 [nginx/README.md](nginx/README.md)。
+参考教程：[nginx基础 - 反向代理](http://47.121.207.32/blog/6#%E5%9B%9Bnginx%E6%97%A5%E5%BF%97%E7%AE%A1%E7%90%86)（完成至第五大点 5.1）
+
+**一台虚拟机快速部署：**
 
 ```bash
-# 1. 确认 Resume(8080) 和 Blog(8081) 已启动
 ss -tlnp | grep -E ':(8080|8081) '
-
-# 2. 复制 Nginx 反向代理配置
 cp nginx/conf/default.conf.example /etc/nginx/conf.d/default.conf
+nginx -t && nginx -s reload
 
-# 3. 检查并重载
-nginx -t
-nginx -s reload
-
-# 访问 http://IP/        → Blog（经 Nginx 反代）
-# 访问 http://IP:8080/   → Resume
-# 访问 http://IP:8081    → Blog（直连）
+# http://IP/       → Blog（Nginx 反代）
+# http://IP:8080/  → Resume
+# http://IP:8081   → Blog（直连）
 ```
+
+**两台虚拟机**：Nginx 装在 Resume 机器，Blog 机器只跑 Blog，用 `default.conf.two-vm.example` 并把 IP 改成 Blog 虚拟机地址。
 
 ---
 
@@ -121,9 +122,11 @@ nginx -s reload
 │   │   ├── start-all.sh          # 一键启动
 │   │   └── stop-all.sh           # 一键停止
 │   └── docs/部署教程.md
-└── nginx/                        # Nginx 反向代理（Resume 同机反代 Blog）
-    ├── README.md
-    └── conf/default.conf.example
+└── nginx/                        # Nginx 反向代理
+    ├── README.md                 # 一台/两台虚拟机对比说明
+    └── conf/
+        ├── default.conf.example          # 一台虚拟机
+        └── default.conf.two-vm.example   # 两台虚拟机
 ```
 
 ## 环境要求

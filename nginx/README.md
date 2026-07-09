@@ -1,6 +1,177 @@
 # Nginx 反向代理
 
-在同一台 CentOS 7 虚拟机上，用 Nginx（80 端口）反向代理 Blog 项目（8081），实现统一访问入口。
+用 Nginx（80 端口）反向代理 Blog 项目（8081），实现统一访问入口。支持 **一台虚拟机** 和 **两台虚拟机** 两种部署方式。
+
+## 两种场景对比
+
+| 对比项 | 两台虚拟机（教程/视频常见） | 一台虚拟机（本仓库实战） |
+|--------|---------------------------|-------------------------|
+| 部署方式 | Resume、Nginx 在 **VM1**；Blog 在 **VM2** | Resume、Blog、Nginx **同一台** |
+| Nginx 装在哪 | **Resume 那台**（VM1） | 本机 |
+| `proxy_pass` 目标 | **Blog 虚拟机 IP**:8081 | `127.0.0.1`:8081 |
+| Resume 访问 | `http://VM1_IP:8080/` | `http://IP:8080/` |
+| Blog 直连 | `http://VM2_IP:8081` | `http://IP:8081` |
+| Blog 经 Nginx | `http://VM1_IP/` | `http://IP/` |
+| 配置模板 | `conf/default.conf.two-vm.example` | `conf/default.conf.example` |
+
+---
+
+## 场景一：两台虚拟机（教程原版）
+
+和视频教程一致：Resume 和 Nginx 在 **虚拟机 A**，Blog 在 **虚拟机 B**。
+
+### 架构图
+
+```
+                    虚拟机 A（Resume 机器）              虚拟机 B（Blog 机器）
+                    例：192.168.153.8                   例：192.168.153.9
+                    ┌─────────────────────┐          ┌─────────────────────┐
+浏览器 ────────────►│ Nginx :80           │          │                     │
+  http://A/         │   proxy_pass ───────┼─────────►│ Blog :8081          │
+                    │                     │  内网转发 │                     │
+  http://A:8080/ ──►│ Tomcat :8080        │          └─────────────────────┘
+  (Resume)          │ (Resume)            │
+                    └─────────────────────┘
+```
+
+### 部署步骤
+
+**虚拟机 B（Blog 机器）**——只跑 Blog，不需要 Nginx：
+
+```bash
+# 部署 Blog，监听 8081
+cd /opt/web/blog
+./scripts/start.sh
+
+# 确认 Blog 已启动
+ss -tlnp | grep 8081
+curl -I http://127.0.0.1:8081/
+```
+
+**虚拟机 A（Resume 机器）**——跑 Resume + Nginx：
+
+```bash
+# 1. 启动 Resume（Tomcat 8080）
+/usr/local/tomcat8/bin/startup.sh
+
+# 2. 测试能否访问 Blog 虚拟机（重要！）
+curl -I http://192.168.153.9:8081/
+# 必须返回 200，否则 Nginx 反代会 502
+
+# 3. 复制两台虚拟机专用配置（把 IP 改成你的 Blog 虚拟机 IP）
+cp nginx/conf/default.conf.two-vm.example /etc/nginx/conf.d/default.conf
+vim /etc/nginx/conf.d/default.conf   # 修改 proxy_pass 中的 Blog 虚拟机 IP
+
+# 4. 检查并重载
+nginx -t
+nginx -s reload
+```
+
+### 关键配置
+
+```nginx
+location / {
+    proxy_pass http://192.168.153.9:8081;   # Blog 虚拟机的 IP
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+### 访问方式
+
+| 地址 | 看到什么 |
+|------|----------|
+| `http://192.168.153.8/` | Blog（Nginx 反代，走 VM1 的 80 端口） |
+| `http://192.168.153.8:8080/` | Resume（VM1 上的 Tomcat） |
+| `http://192.168.153.9:8081` | Blog 直连（VM2） |
+
+### 两台机器注意事项
+
+- Blog 虚拟机防火墙需放行 **8081**，Resume 虚拟机防火墙需放行 **80、8080**
+- Resume 虚拟机必须能 `ping` 通、`curl` 通 Blog 虚拟机的 8081
+- Nginx **只装在 Resume 虚拟机**，Blog 虚拟机不需要装 Nginx
+- `proxy_pass` 写 **Blog 虚拟机的内网 IP**，不要写 `127.0.0.1`（Blog 不在本机）
+
+---
+
+## 场景二：一台虚拟机（本仓库实战 ✅）
+
+Resume、Blog、Nginx 都在同一台机器，只需把教程里的 Blog IP 改成 `127.0.0.1`。
+
+### 架构图
+
+```
+                    同一台虚拟机 192.168.153.8
+                    ┌─────────────────────────────────┐
+浏览器              │                                 │
+  http://IP/    ───►│ Nginx :80 ──► Blog :8081 (本机)  │
+  http://IP:8080/ ►│ Tomcat :8080 (Resume)           │
+  http://IP:8081  ►│ Blog :8081 (直连)               │
+                    └─────────────────────────────────┘
+```
+
+| 端口 | 服务 | 访问内容 |
+|------|------|----------|
+| 80 | Nginx | Blog（反向代理后） |
+| 8080 | Tomcat | Resume（`http://IP:8080/`，非 `/resume`） |
+| 8081 | Spring Boot | Blog（直连） |
+
+### 部署步骤
+
+#### 1. 确认 Resume 和 Blog 已启动
+
+```bash
+ss -tlnp | grep -E ':(8080|8081) '
+
+curl -I http://127.0.0.1:8080/
+curl -I http://127.0.0.1:8081/
+```
+
+#### 2. 确认 80 端口由系统 Nginx 占用
+
+```bash
+ss -tlnp | grep ':80 '
+# 应看到 /usr/sbin/nginx
+```
+
+> **重要**：若同时安装了 yum 版（`/usr/sbin/nginx`）和源码版（`/usr/local/nginx/sbin/nginx`），**只能选一个占 80 端口**。本方案使用 **yum 安装的系统 Nginx**。
+
+#### 3. 复制配置模板
+
+```bash
+cp nginx/conf/default.conf.example /etc/nginx/conf.d/default.conf
+```
+
+#### 4. 检查并重载
+
+```bash
+nginx -t
+nginx -s reload
+```
+
+#### 5. 验证
+
+| 地址 | 预期 |
+|------|------|
+| `http://IP/` | 看到 Blog 页面 |
+| `http://IP:8081` | Blog 直连正常 |
+| `http://IP:8080/` | Resume 登录页（账号 `admin/admin`） |
+
+### 关键配置
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8081;   # 本机 Blog，写 127.0.0.1
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+---
 
 ## 参考教程
 
@@ -16,93 +187,9 @@
 | 五、反向代理 → 5.2 负载均衡及以后 | 未做 |
 | 六～十一章 | 未做 |
 
-教程示例是把请求代理到 `http://www.baidu.com`，本仓库改为代理本机 Blog 项目。
-
-## 与视频/教程的区别
-
-教程常见场景是 **两台虚拟机**：Resume 机器部署 Nginx，反向代理 Blog 机器。
-
-本仓库是 **同一台虚拟机**，只需把 `proxy_pass` 的目标 IP 从「Blog 虚拟机 IP」改为 `127.0.0.1`：
-
-```nginx
-# 教程（两台机器）
-proxy_pass http://192.168.x.x:8081;
-
-# 本机实战（一台机器）
-proxy_pass http://127.0.0.1:8081;
-```
-
-## 整体架构
-
-```
-浏览器
-  │
-  ├─ http://IP:8080/     → Tomcat（Resume 项目）
-  ├─ http://IP:8081      → Spring Boot（Blog 直连）
-  └─ http://IP/          → Nginx:80 → 反向代理 → Blog:8081
-```
-
-| 端口 | 服务 | 访问内容 |
-|------|------|----------|
-| 80 | Nginx | Blog（反向代理后） |
-| 8080 | Tomcat | Resume（`http://IP:8080/`，非 `/resume`） |
-| 8081 | Spring Boot | Blog（直连） |
-
-## 部署步骤（最终正确方案）
-
-### 1. 确认 Resume 和 Blog 已启动
-
-```bash
-ss -tlnp | grep -E ':(8080|8081) '
-
-# 测试
-curl -I http://127.0.0.1:8080/
-curl -I http://127.0.0.1:8081/
-```
-
-### 2. 确认 80 端口由系统 Nginx 占用
-
-```bash
-ss -tlnp | grep ':80 '
-# 应看到 /usr/sbin/nginx
-```
-
-> **重要**：若同时安装了 yum 版（`/usr/sbin/nginx`）和源码版（`/usr/local/nginx/sbin/nginx`），**只能选一个占 80 端口**。本方案使用 **yum 安装的系统 Nginx**。
-
-### 3. 复制配置模板
-
-```bash
-cp nginx/conf/default.conf.example /etc/nginx/conf.d/default.conf
-```
-
-或手动编辑 `/etc/nginx/conf.d/default.conf`，将 `location /` 改为反向代理（见 `conf/default.conf.example`）。
-
-### 4. 检查并重载
-
-```bash
-nginx -t
-nginx -s reload
-```
-
-### 5. 验证
-
-| 地址 | 预期 |
-|------|------|
-| `http://IP/` | 看到 Blog 页面 |
-| `http://IP:8081` | Blog 直连正常 |
-| `http://IP:8080/` | Resume 登录页（账号 `admin/admin`） |
+教程示例是把请求代理到 `http://www.baidu.com`，实际应代理 Blog 项目。两台虚拟机写 Blog 的 IP，一台虚拟机写 `127.0.0.1`。
 
 ## 关键配置说明
-
-```nginx
-location / {
-    proxy_pass http://127.0.0.1:8081;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-```
 
 | 指令 | 作用 |
 |------|------|
@@ -176,12 +263,14 @@ tail -f /var/log/nginx/access.log
 
 ```
 nginx/
-├── README.md                   # 本文档
+├── README.md                          # 本文档（含一台/两台虚拟机对比）
 └── conf/
-    └── default.conf.example    # 反向代理配置模板
+    ├── default.conf.example           # 一台虚拟机：proxy_pass 127.0.0.1:8081
+    └── default.conf.two-vm.example    # 两台虚拟机：proxy_pass Blog虚拟机IP:8081
 ```
 
-部署时将 `default.conf.example` 复制到 `/etc/nginx/conf.d/default.conf`。
+- **一台虚拟机**：复制 `default.conf.example` → `/etc/nginx/conf.d/default.conf`
+- **两台虚拟机**：复制 `default.conf.two-vm.example`，修改其中的 Blog IP
 
 ## 后续可学习内容（教程未做部分）
 
