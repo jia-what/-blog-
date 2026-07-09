@@ -1,15 +1,16 @@
 # 运维 Blog 项目实战
 
-CentOS 7 虚拟机上的 Java Web 项目部署实战合集，包含 **Resume** 与 **Blog** 两个项目。
+CentOS 7 虚拟机上的 Java Web 项目部署实战合集，包含 **Resume**、**Blog**、**Blog Cloud** 三个项目。
 
 ## 项目一览
 
-| 项目 | 技术栈 | 端口 | 说明 |
-|------|--------|------|------|
-| [Resume](webapp/) | Servlet + JSP + Tomcat | 8080 | 登录后展示在线运维简历 |
-| [Blog](blog/) | Spring Boot + MySQL | 8081 | 博客系统（内置 Tomcat） |
+| 项目 | 目录 | 技术栈 | 端口 | 说明 |
+|------|------|--------|------|------|
+| Resume | [webapp/](webapp/) | Servlet + JSP + Tomcat | 8080 | 登录后展示在线运维简历 |
+| Blog | [blog/](blog/) | Spring Boot + MySQL | 8081 | 单体博客系统（内置 Tomcat） |
+| Blog Cloud | [blog-cloud/](blog-cloud/) | Spring Cloud + Vue 3 | 8082 | 微服务博客（前后端分离） |
 
-两个项目可在**同一台虚拟机**共存：共用 MySQL、JDK，端口分开即可。
+三个项目可在**同一台虚拟机**共存：端口分开即可。
 
 ---
 
@@ -45,29 +46,52 @@ chmod +x scripts/start.sh && ./scripts/start.sh
 
 ---
 
+## Blog Cloud 项目
+
+基于 **Spring Cloud 微服务 + Vue 3** 的前后端分离博客，包含 Eureka、Gateway、Home/Admin 微服务。
+
+详细说明见 [blog-cloud/README.md](blog-cloud/README.md) 与 [blog-cloud/docs/部署教程.md](blog-cloud/docs/部署教程.md)。
+
+```bash
+# 部署到 /opt/web，上传 4 个 jar 包后：
+cp blog-cloud/scripts/start-all.sh /opt/web/start-all.sh
+chmod +x /opt/web/start-all.sh
+/opt/web/start-all.sh
+# 访问 http://IP:8082/  后台 http://IP:8082/admin
+```
+
+---
+
 ## 仓库结构
 
 ```
 .
 ├── README.md
-├── docs/部署教程.md          # Resume 部署教程
-├── sql/user.sql              # Resume 数据库
-├── webapp/                   # Resume Web 项目
-└── blog/
+├── docs/部署教程.md              # Resume 部署教程
+├── sql/user.sql                  # Resume 数据库
+├── webapp/                       # Resume（Servlet + JSP）
+├── blog/                         # Blog（Spring Boot 单体）
+│   ├── README.md
+│   ├── config/application.yml.example
+│   ├── docs/部署教程.md
+│   ├── scripts/start.sh
+│   ├── sql/blog.sql
+│   └── docker/
+└── blog-cloud/                   # Blog Cloud（Spring Cloud 微服务 + Vue）
     ├── README.md
-    ├── config/application.yml.example
-    ├── docs/部署教程.md
-    ├── scripts/start.sh
-    ├── sql/blog.sql
-    └── docker/               # Docker 部署（可选）
+    ├── config/                   # 各服务配置模板
+    ├── frontend/                 # Vue 前端源码
+    ├── scripts/start-all.sh
+    └── docs/部署教程.md
 ```
 
 ## 环境要求
 
 - CentOS 7（2 核 2G）
-- MySQL 5.7
+- MySQL 5.7（Resume、Blog 需要）
 - JDK 8
 - Tomcat 8.5（仅 Resume 需要）
+- Node.js 16+（仅 Blog Cloud 前端需要）
 
 ## 常用下载
 

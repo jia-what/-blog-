@@ -24,3 +24,11 @@ Thumbs.db
 *.swo
 .idea/
 .vscode/
+
+# 前端依赖与构建产物
+node_modules/
+dist/
+
+# 运行时日志
+nohup.out
+**/log/*.log

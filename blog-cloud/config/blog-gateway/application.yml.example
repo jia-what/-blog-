@@ -1,0 +1,39 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: blog-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: blog-home
+          uri: lb://blog-home
+          predicates:
+            - Path=/home/**
+          filters:
+            - StripPrefix=1
+        - id: blog-admin
+          uri: lb://blog-admin
+          predicates:
+            - Path=/admin/**
+          filters:
+            - StripPrefix=1
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://YOUR_IP:8082"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+            allowedHeaders: "*"
+
+eureka:
+  instance:
+    prefer-ip-address: true
+    ip-address: 127.0.0.1
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
