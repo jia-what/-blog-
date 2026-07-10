@@ -32,3 +32,8 @@ dist/
 # 运行时日志
 nohup.out
 **/log/*.log
+
+# MySQL 备份（含密码的脚本与导出文件）
+script/mysql_bak/mysql_bak.sh
+/opt/script/*.sql
+**/*-mysql-blog.sql

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# MySQL 备份脚本（配置模板）
+# 部署：复制为 mysql_bak.sh 并修改下方变量，勿将含真实密码的文件提交到 Git
+
+# MySQL 配置
+MYSQL_HOST="127.0.0.1"          # 数据库 IP（本机填 127.0.0.1）
+MYSQL_PORT="3306"               # 端口
+MYSQL_USER="root"               # 用户名
+MYSQL_PASSWORD="你的密码"        # 密码（仅保留在服务器本地）
+MYSQL_DATABASE="myblog"         # 要备份的数据库（Blog 项目）
+MYSQL_DIR="/opt/script"         # 备份文件存放目录
+
+# 创建备份目录
+mkdir -p "$MYSQL_DIR"
+
+# 备份文件名（带日期时间）
+DATE=$(date +%F-%H-%M)
+BACKUP_FILE="$MYSQL_DIR/$DATE-mysql-blog.sql"
+
+# 执行备份
+mysqldump -h "$MYSQL_HOST" \
+          -P "$MYSQL_PORT" \
+          -u "$MYSQL_USER" \
+          -p"$MYSQL_PASSWORD" \
+          "$MYSQL_DATABASE" > "$BACKUP_FILE"
