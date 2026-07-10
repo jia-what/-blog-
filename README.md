@@ -118,7 +118,7 @@ ls -lh /opt/script/*-mysql-blog.sql
 
 # 3. 添加定时任务
 crontab -e
-# 每周日凌晨 2 点备份（推荐）：
+# 在编辑器中加入一行（每周日凌晨 2 点）：
 # 0 2 * * 0 /opt/script/mysql_bak/mysql_bak.sh
 ```
 
