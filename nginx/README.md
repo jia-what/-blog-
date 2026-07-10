@@ -63,13 +63,14 @@ cp nginx/conf/default.conf.two-vm.example /etc/nginx/conf.d/default.conf
 vim /etc/nginx/conf.d/default.conf   # 修改 proxy_pass 中的 Blog 虚拟机 IP
 
 # 4. 检查并重载
+cd /usr/local/nginx/sbin
 nginx -t
 nginx -s reload
 ```
 
 ### 关键配置
 
-```nginx
+```nginx /etc/nginx/conf.d/default.conf
 location / {
     proxy_pass http://192.168.153.9:8081;   # Blog 虚拟机的 IP
     proxy_set_header Host $host;
